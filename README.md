@@ -1,8 +1,8 @@
-# joystick-mapper
+# joystick-mapper
 
 A simple program to map joystick input to keyboard keys.
 
-## How to use
+## How to use
 
 Run it with:
 
