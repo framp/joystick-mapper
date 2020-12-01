@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + 'static>>  {
     let pause = time::Duration::from_millis(5);
     loop {
         while let Some(Event { event, .. }) = gilrs.next_event() {
-            //println!("{:?} New event from {}: {:?}", time, id, event);
+            //println!("New event: {:?}", event);
             match event {
                 gilrs::EventType::ButtonPressed(button, _) => {
                     if let Some(action) = conf.buttons.get(&button) {
