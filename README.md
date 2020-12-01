@@ -39,5 +39,6 @@ axis:
   RightStickY: [MouseY, MouseY]
 ```
 
-## License:
+## License:
+
 MIT
