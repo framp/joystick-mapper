@@ -43,7 +43,7 @@ axis:
   RightStickY: [MouseY, MouseY]
 ```
 
-## Dependencies
+## Dependencies:
 Linux: libudev, libxdo
 
 ## License:
