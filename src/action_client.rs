@@ -90,7 +90,8 @@ impl ActionClient {
     }
     pub fn exec_mouse_loop(&mut self) {
         let [x_amount, y_amount] = self.mouse_axis_state;
-        self.enigo.mouse_move_relative((x_amount*10_f32.round()) as i32, 0);
-        self.enigo.mouse_move_relative(0, (y_amount*-10_f32.round()) as i32);
+        if x_amount != 0_f32 && y_amount != 0_f32 {
+            self.enigo.mouse_move_relative((x_amount*10_f32.round()) as i32, (y_amount*-10_f32.round()) as i32);
+        }
     }
 }

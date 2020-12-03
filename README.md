@@ -28,6 +28,10 @@ buttons:
   South: q
   West: r
   North: Tab
+  DPadUp: w
+  DPadDown: s
+  DPadRight: d
+  DPadLeft: a
   LeftTrigger2: Escape
   RightTrigger2:
     MouseButton: Left
