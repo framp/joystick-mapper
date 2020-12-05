@@ -1,0 +1,10 @@
+[package]
+name = "joystick-mapper"
+version = "0.1.0"
+authors = ["Federico Rampazzo <frampone@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+serde_yaml = "0.8.14"
+serde = "1.0.117"
+joystick-mapper-lib = { path = "../joystick-mapper-lib" }

@@ -1,0 +1,9 @@
+mouse sensitivity
+invert axes api
+pause duration between loops
+
+split project in library crate + joystick-mapper + joystick-mapper-among-us
+
+extensible api to extend types
+
+gui with qt?
