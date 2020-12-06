@@ -71,7 +71,7 @@ pub enum InputState {
     Down,
 }
 pub struct ActionClient {
-    enigo: Enigo,
+    pub enigo: Enigo,
     axis_key_state: FxHashMap<Key, InputState>,
     mouse_axis_state: [f32; 2],
 }
@@ -102,8 +102,8 @@ impl ActionClient {
         let [x_amount, y_amount] = self.mouse_axis_state;
         if x_amount != 0_f32 && y_amount != 0_f32 {
             self.enigo.mouse_move_relative(
-                (x_amount * 10_f32.round()) as i32,
-                (y_amount * -10_f32.round()) as i32,
+                (x_amount * 20_f32.round()) as i32,
+                (y_amount * -20_f32.round()) as i32,
             );
         }
     }

@@ -10,5 +10,4 @@ serde = "1.0.117"
 joystick-mapper-lib = { path = "../joystick-mapper-lib" }
 scrap = "0.5.0"
 opencv = "0.46.3"
-image = "0.23.12"
-imageproc = "0.22.0"
+enigo = "0.0.14"
