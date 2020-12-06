@@ -5,23 +5,23 @@ use gilrs::{Axis, Button, Event, Gilrs};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct KeyMapping<A: Action> {
+pub struct KeyMapping<A> {
     pub buttons: FxHashMap<Button, A>,
     pub axis: FxHashMap<Axis, [A; 2]>,
 }
 
-pub struct JoystickClient<A: Action> {
+pub struct JoystickClient<A: Action<S>, S> {
     gilrs: Gilrs,
     keymapping: KeyMapping<A>,
-    pub action_client: ActionClient, // TODO remove pub
+    pub action_client: ActionClient<S>, // TODO remove pub
     axis_sensitivity: f32,
 }
 
-impl<A: Action> JoystickClient<A> {
-    pub fn new(keymapping: KeyMapping<A>) -> JoystickClient<A> {
+impl<A: Action<S>, S> JoystickClient<A, S> {
+    pub fn new(keymapping: KeyMapping<A>, state: S) -> JoystickClient<A, S> {
         let gilrs = Gilrs::new().unwrap();
         let axis_sensitivity = 0.3_f32;
-        let action_client = ActionClient::default();
+        let action_client = ActionClient::new(state);
         JoystickClient {
             gilrs,
             keymapping,

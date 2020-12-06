@@ -15,10 +15,10 @@ pub enum KeyMouseAction {
     Mouse(MouseAction),
 }
 
-impl Action for KeyMouseAction {
+impl Action<()> for KeyMouseAction {
     fn perform_action(
         &self,
-        client: &mut ActionClient,
+        client: &mut ActionClient<()>,
         input_state: InputState,
         amount: Option<f32>,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conf_content = fs::read_to_string(filename.unwrap()).expect("Failed reading the file");
     let conf: KeyMapping<KeyMouseAction> = serde_yaml::from_str(&conf_content)?;
 
-    let mut joystick_client: JoystickClient<KeyMouseAction> = JoystickClient::new(conf);
+    let mut joystick_client: JoystickClient<KeyMouseAction, ()> = JoystickClient::new(conf, ());
     let pause = time::Duration::from_millis(15);
     loop {
         joystick_client.exec_event_loop()?;

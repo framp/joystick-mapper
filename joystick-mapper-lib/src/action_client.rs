@@ -2,10 +2,10 @@ use enigo::*;
 use fxhash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
-pub trait Action {
+pub trait Action<S> {
     fn perform_action(
         &self,
-        client: &mut ActionClient,
+        client: &mut ActionClient<S>,
         input_state: InputState,
         amount: Option<f32>,
     ) -> Result<(), Box<dyn std::error::Error>>;
@@ -18,10 +18,10 @@ pub enum MouseAction {
     MouseButton(MouseButton),
 }
 
-impl Action for MouseAction {
+impl <S> Action<S> for MouseAction {
     fn perform_action(
         &self,
-        client: &mut ActionClient,
+        client: &mut ActionClient<S>,
         input_state: InputState,
         amount: Option<f32>,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -38,10 +38,10 @@ impl Action for MouseAction {
     }
 }
 
-impl Action for Key {
+impl <S> Action<S> for Key {
     fn perform_action(
         &self,
-        client: &mut ActionClient,
+        client: &mut ActionClient<S>,
         input_state: InputState,
         amount: Option<f32>,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -70,27 +70,27 @@ pub enum InputState {
     Up,
     Down,
 }
-pub struct ActionClient {
+pub struct ActionClient<S> {
     pub enigo: Enigo,
+    pub state: S,
     axis_key_state: FxHashMap<Key, InputState>,
     mouse_axis_state: [f32; 2],
 }
 
-impl Default for ActionClient {
-    fn default() -> Self {
+impl <S> ActionClient<S> {
+    pub fn new(state: S) -> Self {
         let enigo = Enigo::new();
         let axis_key_state = FxHashMap::default();
 
         ActionClient {
             enigo,
+            state,
             axis_key_state,
             mouse_axis_state: [0_f32, 0_f32],
         }
     }
-}
 
-impl ActionClient {
-    pub fn perform_action<A: Action>(
+    pub fn perform_action<A: Action<S>>(
         &mut self,
         action: &A,
         input_state: InputState,

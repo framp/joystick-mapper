@@ -28,10 +28,10 @@ pub enum KeyMouseVentAction {
     Vent(VentAction),
 }
 
-impl Action for VentAction {
+impl Action<Capturer> for VentAction {
     fn perform_action(
         &self,
-        client: &mut ActionClient,
+        client: &mut ActionClient<Capturer>,
         input_state: InputState,
         _amount: Option<f32>,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -40,13 +40,11 @@ impl Action for VentAction {
         }
 
         println!("venting");
-        let display = Display::primary()?;
-        let mut capturer = Capturer::new(display)?;
-        let (w, h) = (capturer.width(), capturer.height());
+        let (w, h) = (client.state.width(), client.state.height());
 
         loop {
             // Wait until there's a frame.
-            let buffer = match capturer.frame() {
+            let buffer = match client.state.frame() {
                 Ok(buffer) => buffer,
                 Err(error) => {
                     if error.kind() == WouldBlock {
@@ -169,10 +167,10 @@ impl Action for VentAction {
     }
 }
 
-impl Action for KeyMouseVentAction {
+impl Action<Capturer> for KeyMouseVentAction {
     fn perform_action(
         &self,
-        client: &mut ActionClient,
+        client: &mut ActionClient<Capturer>,
         input_state: InputState,
         amount: Option<f32>,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -198,7 +196,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conf_content = fs::read_to_string(filename.unwrap()).expect("Failed reading the file");
     let conf: KeyMapping<KeyMouseVentAction> = serde_yaml::from_str(&conf_content)?;
 
-    let mut joystick_client: JoystickClient<KeyMouseVentAction> = JoystickClient::new(conf);
+    let display = Display::primary()?;
+    let capturer = Capturer::new(display)?;
+
+    let mut joystick_client: JoystickClient<KeyMouseVentAction, Capturer> = JoystickClient::new(conf, capturer);
 
     let pause = time::Duration::from_millis(15);
     loop {
