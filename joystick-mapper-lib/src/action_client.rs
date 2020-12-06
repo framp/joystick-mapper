@@ -15,10 +15,16 @@ pub trait Action<S> {
 pub enum MouseAction {
     MouseX,
     MouseY,
-    MouseButton(MouseButton),
+    MouseLeft,
+    MouseMiddle,
+    MouseRight,
+    MouseScrollUp,
+    MouseScrollDown,
+    MouseScrollLeft,
+    MouseScrollRight,
 }
 
-impl <S> Action<S> for MouseAction {
+impl<S> Action<S> for MouseAction {
     fn perform_action(
         &self,
         client: &mut ActionClient<S>,
@@ -26,19 +32,28 @@ impl <S> Action<S> for MouseAction {
         amount: Option<f32>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let amount = amount.unwrap_or(1.0);
-        match &self {
-            MouseAction::MouseX => client.mouse_axis_state[0] = amount,
-            MouseAction::MouseY => client.mouse_axis_state[1] = amount,
-            MouseAction::MouseButton(mouse_button) => match input_state {
-                InputState::Up => client.enigo.mouse_up(*mouse_button),
-                InputState::Down => client.enigo.mouse_down(*mouse_button),
-            },
+        let button_press = match &self {
+            MouseAction::MouseX => { client.mouse_axis_state[0] = amount; None }
+            MouseAction::MouseY => { client.mouse_axis_state[1] = amount; None }
+            MouseAction::MouseLeft => Some(MouseButton::Left),
+            MouseAction::MouseMiddle => Some(MouseButton::Middle),
+            MouseAction::MouseRight => Some(MouseButton::Right),
+            MouseAction::MouseScrollUp => Some(MouseButton::ScrollUp),
+            MouseAction::MouseScrollDown => Some(MouseButton::ScrollDown),
+            MouseAction::MouseScrollLeft => Some(MouseButton::ScrollLeft),
+            MouseAction::MouseScrollRight => Some(MouseButton::ScrollRight),
+        };
+        if let Some(mouse_button) = button_press {
+            match input_state {
+                InputState::Up => client.enigo.mouse_up(mouse_button),
+                InputState::Down => client.enigo.mouse_down(mouse_button),
+            }
         }
         Ok(())
     }
 }
 
-impl <S> Action<S> for Key {
+impl<S> Action<S> for Key {
     fn perform_action(
         &self,
         client: &mut ActionClient<S>,
@@ -75,10 +90,11 @@ pub struct ActionClient<S> {
     pub state: S,
     axis_key_state: FxHashMap<Key, InputState>,
     mouse_axis_state: [f32; 2],
+    mouse_speed: f32,
 }
 
-impl <S> ActionClient<S> {
-    pub fn new(state: S) -> Self {
+impl<S> ActionClient<S> {
+    pub fn new(state: S, mouse_speed: f32) -> Self {
         let enigo = Enigo::new();
         let axis_key_state = FxHashMap::default();
 
@@ -87,6 +103,7 @@ impl <S> ActionClient<S> {
             state,
             axis_key_state,
             mouse_axis_state: [0_f32, 0_f32],
+            mouse_speed,
         }
     }
 
@@ -102,8 +119,8 @@ impl <S> ActionClient<S> {
         let [x_amount, y_amount] = self.mouse_axis_state;
         if x_amount != 0_f32 && y_amount != 0_f32 {
             self.enigo.mouse_move_relative(
-                (x_amount * 20_f32.round()) as i32,
-                (y_amount * -20_f32.round()) as i32,
+                (x_amount * self.mouse_speed.round()) as i32,
+                (y_amount * -self.mouse_speed.round()) as i32,
             );
         }
     }

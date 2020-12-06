@@ -1,65 +1,70 @@
 use crate::action_client::{Action, ActionClient, InputState};
 
 use fxhash::FxHashMap;
-use gilrs::{Axis, Button, Event, Gilrs};
+use gilrs::{Axis, Button, Event, Gamepad, GamepadId, Gilrs};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct KeyMapping<A> {
+pub struct MappingConfiguration<A> {
     pub buttons: FxHashMap<Button, A>,
     pub axis: FxHashMap<Axis, [A; 2]>,
+    pub axis_sensitivity: Option<f32>,
+    pub mouse_speed: Option<f32>,
 }
 
 pub struct JoystickClient<A: Action<S>, S> {
     gilrs: Gilrs,
-    keymapping: KeyMapping<A>,
-    pub action_client: ActionClient<S>, // TODO remove pub
-    axis_sensitivity: f32,
+    configuration: MappingConfiguration<A>,
+    action_client: ActionClient<S>,
 }
 
 impl<A: Action<S>, S> JoystickClient<A, S> {
-    pub fn new(keymapping: KeyMapping<A>, state: S) -> JoystickClient<A, S> {
+    pub fn new(configuration: MappingConfiguration<A>, state: S) -> JoystickClient<A, S> {
         let gilrs = Gilrs::new().unwrap();
-        let axis_sensitivity = 0.3_f32;
-        let action_client = ActionClient::new(state);
+        let mouse_speed = configuration.mouse_speed.unwrap_or(20.0);
+        let action_client = ActionClient::new(state, mouse_speed);
         JoystickClient {
             gilrs,
-            keymapping,
+            configuration,
             action_client,
-            axis_sensitivity,
         }
     }
 
-    pub fn axis_sensitivity(mut self, axis_sensitivity: f32) -> Self {
-        self.axis_sensitivity = axis_sensitivity;
-        self
+    pub fn gamepads(&self) -> Vec<(GamepadId, Gamepad)> {
+        self.gilrs.gamepads().collect::<Vec<(GamepadId, Gamepad)>>()
     }
 
-    pub fn exec_event_loop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn exec_event_loop(
+        &mut self,
+        on_connected: Option<&dyn Fn() -> ()>,
+        on_disconnected: Option<&dyn Fn() -> ()>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         while let Some(Event { event, .. }) = self.gilrs.next_event() {
             match event {
                 gilrs::EventType::ButtonPressed(button, _) => {
-                    if let Some(action) = self.keymapping.buttons.get(&button) {
+                    if let Some(action) = self.configuration.buttons.get(&button) {
                         self.action_client
                             .perform_action(action, InputState::Down, None)?;
                     }
                 }
                 gilrs::EventType::ButtonReleased(button, _) => {
-                    if let Some(action) = self.keymapping.buttons.get(&button) {
+                    if let Some(action) = self.configuration.buttons.get(&button) {
                         self.action_client
                             .perform_action(action, InputState::Up, None)?;
                     }
                 }
                 gilrs::EventType::AxisChanged(axis, amount, _) => {
                     if let Some([negative_action, positive_action]) =
-                        self.keymapping.axis.get(&axis)
+                        self.configuration.axis.get(&axis)
                     {
-                        let negative_input_state = if amount >= -self.axis_sensitivity {
+                        let axis_sensitivity =
+                            self.configuration.axis_sensitivity.unwrap_or(0.3_f32);
+                        let negative_input_state = if amount >= -axis_sensitivity {
                             InputState::Up
                         } else {
                             InputState::Down
                         };
-                        let positive_input_state = if amount <= self.axis_sensitivity {
+                        let positive_input_state = if amount <= axis_sensitivity {
                             InputState::Up
                         } else {
                             InputState::Down
@@ -78,8 +83,12 @@ impl<A: Action<S>, S> JoystickClient<A, S> {
                 }
                 gilrs::EventType::ButtonRepeated(_, _) => {}
                 gilrs::EventType::ButtonChanged(_, _, _) => {}
-                gilrs::EventType::Connected => {}
-                gilrs::EventType::Disconnected => {}
+                gilrs::EventType::Connected => {
+                    on_connected.and_then(|cb| Some(cb())).unwrap_or(())
+                }
+                gilrs::EventType::Disconnected => {
+                    on_disconnected.and_then(|cb| Some(cb())).unwrap_or(())
+                }
                 gilrs::EventType::Dropped => {}
             }
         }

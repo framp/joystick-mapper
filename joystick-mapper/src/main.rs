@@ -1,5 +1,5 @@
 use joystick_mapper_lib::ActionClient;
-use joystick_mapper_lib::{Action, InputState, JoystickClient, KeyMapping};
+use joystick_mapper_lib::{Action, InputState, JoystickClient, MappingConfiguration};
 use joystick_mapper_lib::{Key, MouseAction};
 
 use serde::{Deserialize, Serialize};
@@ -32,20 +32,32 @@ impl Action<()> for KeyMouseAction {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let exec = env::args().nth(0).unwrap();
-    let filename = env::args().nth(1);
-    if filename.is_none() {
-        println!("USAGE: {} <configuration-file>", exec);
-        std::process::exit(0);
-    }
-    let conf_content = fs::read_to_string(filename.unwrap()).expect("Failed reading the file");
-    let conf: KeyMapping<KeyMouseAction> = serde_yaml::from_str(&conf_content)?;
+fn print_gamepads(client: &JoystickClient<KeyMouseAction, ()>) {
+    let gamepads = client.gamepads();
+    println!(
+        "Found {} joystick{}",
+        gamepads.len(),
+        if gamepads.len() == 1 { "" } else { "s" }
+    );
+}
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let filename = env::args()
+        .nth(1)
+        .unwrap_or("joystick-mapper.conf".to_string());
+    let conf_content = fs::read_to_string(filename).expect("Failed reading the file");
+    let conf: MappingConfiguration<KeyMouseAction> = serde_yaml::from_str(&conf_content)?;
     let mut joystick_client: JoystickClient<KeyMouseAction, ()> = JoystickClient::new(conf, ());
     let pause = time::Duration::from_millis(15);
+    print_gamepads(&joystick_client);
+    let on_connected = || {
+        println!("New joystick connected!");
+    };
+    let on_disconnected = || {
+        println!("Joystick disconnected!");
+    };
     loop {
-        joystick_client.exec_event_loop()?;
+        joystick_client.exec_event_loop(Some(&on_connected), Some(&on_disconnected))?;
         thread::sleep(pause);
     }
 }
