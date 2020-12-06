@@ -1,0 +1,13 @@
+[package]
+name = "joystick-mapper-among-us"
+version = "0.2.0"
+authors = ["Federico Rampazzo <frampone@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+serde_yaml = "0.8.14"
+serde = "1.0.117"
+joystick-mapper-lib = { path = "../joystick-mapper-lib" }
+scrap = "0.5.0"
+opencv = "0.46.3"
+enigo = "0.0.14"

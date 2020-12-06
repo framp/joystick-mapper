@@ -1,16 +1,10 @@
 # joystick-mapper
 
-A simple program to map joystick input to keyboard keys.
+A rust library to map joystick input to keyboard keys, mouse presses and more.
+
+And a couple of showcases implementations.
 
 ## How to use
-
-Run it with:
-
-```bash
-cargo run examples/among-us.conf
-# or
-joystick-mapper examples/among-us.conf
-```
 
 1. Create a configuration file for the mapping you want to setup
 2. The file needs to follow the YAML format and contain two maps `buttons` and `axis`
@@ -19,29 +13,22 @@ joystick-mapper examples/among-us.conf
 5. Set up output keyboard keys using [these identifiers](https://docs.rs/enigo/0.0.14/enigo/enum.Key.html) or a letter
 6. Set up output mouse buttons using a map MouseButton with one of [these identifiers](https://docs.rs/enigo/0.0.14/enigo/enum.MouseButton.html)
 7. Set up output mouse axis using `MouseX` and `MouseY`
+8. Run it `cargo run --bin joystick-mapper path/to/configuration.conf` or `joystick-mapper path/to/configuration.conf`
+9. Enjoy!
 
-## Example:
+## Among Us Edition
 
-```yaml
-buttons:
-  East: e
-  South: q
-  West: r
-  North: Tab
-  DPadUp: w
-  DPadDown: s
-  DPadRight: d
-  DPadLeft: a
-  LeftTrigger2: Escape
-  RightTrigger2:
-    MouseButton: Left
+`joystick-mapper-among-us` is `joystick-mapper` plus shortcuts for venting in the game [Among Us](https://store.steampowered.com/app/945360/Among_Us/).
 
-axis:
-  LeftStickX: [a, d]
-  LeftStickY: [s, w]
-  RightStickX: [MouseX, MouseX]
-  RightStickY: [MouseY, MouseY]
-```
+When a `VentAction` is dispatched, a screenshot is taken and a sophisticated algorithm will map clicking on the vents you see on screen to buttons on your controller.
+
+A few cases in Mira HQ may look a bit ambiguos because there are 3 arrows and they're not straight.
+
+The algorithm will map vents always in the same way though, so you just have to learn the directions.
+
+## Example configuration:
+
+Checkout the [examples](https://github.com/framp/joystick-mapper/tree/master/examples) directory for sample configurations
 
 ## Dependencies:
 Linux: libudev, libxdo
