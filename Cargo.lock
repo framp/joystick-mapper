@@ -245,7 +245,7 @@ dependencies = [
 
 [[package]]
 name = "joystick-mapper"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "joystick-mapper-lib",
  "serde",
@@ -254,7 +254,7 @@ dependencies = [
 
 [[package]]
 name = "joystick-mapper-among-us"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "enigo",
  "joystick-mapper-lib",
@@ -266,7 +266,7 @@ dependencies = [
 
 [[package]]
 name = "joystick-mapper-lib"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "enigo",
  "fxhash",
