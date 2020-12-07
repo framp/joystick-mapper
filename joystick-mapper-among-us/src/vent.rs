@@ -79,6 +79,14 @@ pub fn select_vent(
         return Ok(None);
     }
     vents.sort_by(|a, b| b.0.partial_cmp(&a.0).expect("NaN sorting vents by area"));
+    let max_area = vents[0].0;
+    for (i, vent) in vents.iter().enumerate() {
+        println!("{} {:?} ",max_area, vent);
+        if vent.0 / max_area < 0.9 {
+            vents.truncate(i);
+            break;
+        }
+    }
     vents.truncate(max_vents as usize);
     let vent_coords: Vec<(i32, i32)> = vents.iter().map(|(_, b, c)| (*b, *c)).collect();
     let mut direction = vec![
