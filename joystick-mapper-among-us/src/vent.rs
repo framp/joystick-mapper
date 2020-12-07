@@ -65,9 +65,10 @@ pub fn select_vent(
         let area = contour_area(&contour, false)?;
         let area_score = area / (width as f64);
 
-        // half venting arrow's area at fullscreen is 0.25 of the screenshot (on my screen at least)
-        // starting from 0.01 to handle playing in a window
-        if area_score > 0.01 && area_score < 0.5 {
+        // half venting arrow's area at fullscreen is 0.25 of the screenshot (on mac at least)
+        // it's 0.77 on windows
+        // starting from 0.01 to handle playing in a window and removing one off pixels
+        if area_score > 0.01 {
             let moments = moments(&contour, true)?;
             let c_x = (moments.m10 / moments.m00).round() as i32;
             let c_y = (moments.m01 / moments.m00).round() as i32;
