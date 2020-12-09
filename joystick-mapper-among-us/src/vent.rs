@@ -28,9 +28,9 @@ pub fn select_vent(
     let mut mask_emergency: Mat = Mat::default();
     let mut mask_all = Mat::default();
     // venting arrows have two colors, this will give us, half an arrow
-    let target = (184, 179, 169);
+    let target = (218, 215, 209); // the dark part of the arrow is 184, 179, 169
     // during an emergency the screen flashes red changing the color of the arrow
-    let target_emergency = (116, 112, 201);
+    let target_emergency = (137, 135, 226); // the dark part of the arrow is 116, 112, 201
     let delta = 1;
     let lower_color_mat = Mat::new_from_bytes(1, 4, CV_8UC1, &[target.0 - delta, target.1 - delta, target.2 - delta, 255]);
     let upper_color_mat = Mat::new_from_bytes(1, 4, CV_8UC1, &[target.0 + delta, target.1 + delta, target.2 + delta, 255]);
@@ -83,7 +83,7 @@ pub fn select_vent(
     vents.sort_by(|a, b| b.0.partial_cmp(&a.0).expect("NaN sorting vents by area"));
     let max_area = vents[0].0;
     for (i, vent) in vents.iter().enumerate() {
-        if vent.0 / max_area < 0.9 {
+        if vent.0 / max_area < 0.5 {
             vents.truncate(i);
             break;
         }
