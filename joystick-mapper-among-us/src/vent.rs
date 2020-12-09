@@ -1,8 +1,11 @@
-use opencv::{
-    core::{bitwise_or, in_range, Point, Scalar, Vector},
-    imgproc::{contour_area, find_contours, moments, CHAIN_APPROX_SIMPLE, RETR_LIST},
-    prelude::*,
+#[path = "opencv.rs"] mod opencv;
+
+use self::opencv::{
+    bitwise_or, in_range, Mat, Point,
+    contour_area, find_contours, 
+    CV_8UC1, CV_8UC4, RETR_LIST, CHAIN_APPROX_SIMPLE
 };
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
@@ -20,58 +23,57 @@ pub fn select_vent(
     max_vents: u8,
     action: &VentAction,
 ) -> Result<Option<(i32, i32)>, Box<dyn std::error::Error>> {
-    let src = Mat::from_slice(buffer)?.reshape(4, height as i32)?;
-    let mut mask: Mat = Mat::default()?;
-    let mut mask_emergency: Mat = Mat::default()?;
-    let mut mask_all = Mat::default()?;
+    let src = Mat::new_from_bytes(height, width, CV_8UC4, buffer);
+    let mut mask: Mat = Mat::default();
+    let mut mask_emergency: Mat = Mat::default();
+    let mut mask_all = Mat::default();
     // venting arrows have two colors, this will give us, half an arrow
-    let target = (184., 179., 169.);
+    let target = (184, 179, 169);
     // during an emergency the screen flashes red changing the color of the arrow
-    let target_emergency = (116., 112., 201.);
-    let delta = 1.;
+    let target_emergency = (116, 112, 201);
+    let delta = 1;
+    let lower_color_mat = Mat::new_from_bytes(1, 4, CV_8UC1, &[target.0 - delta, target.1 - delta, target.2 - delta, 255]);
+    let upper_color_mat = Mat::new_from_bytes(1, 4, CV_8UC1, &[target.0 + delta, target.1 + delta, target.2 + delta, 255]);
+    let lower_color_mat_emergency = Mat::new_from_bytes(1, 4, CV_8UC1, &[target_emergency.0 - delta, target_emergency.1 - delta, target_emergency.2 - delta, 255]);
+    let upper_color_mat_emergency = Mat::new_from_bytes(1, 4, CV_8UC1, &[target_emergency.0 + delta, target_emergency.1 + delta, target_emergency.2 + delta, 255]);
     in_range(
         &src,
-        &Scalar::new(target.0 - delta, target.1 - delta, target.2 - delta, 255.),
-        &Scalar::new(target.0 + delta, target.1 + delta, target.2 + delta, 255.),
+        &lower_color_mat,
+        &upper_color_mat,
         &mut mask,
-    )?;
+    );
     in_range(
         &src,
-        &Scalar::new(
-            target_emergency.0 - delta,
-            target_emergency.1 - delta,
-            target_emergency.2 - delta,
-            255.,
-        ),
-        &Scalar::new(
-            target_emergency.0 + delta,
-            target_emergency.1 + delta,
-            target_emergency.2 + delta,
-            255.,
-        ),
+        &lower_color_mat_emergency,
+        &upper_color_mat_emergency,
         &mut mask_emergency,
-    )?;
-    bitwise_or(&mask, &mask_emergency, &mut mask_all, &Mat::default()?)?;
-    let mut contours: Vector<Vector<Point>> = Vector::new();
-    find_contours(
+    );
+    bitwise_or(&mask, &mask_emergency, &mut mask_all);
+
+    let contours: Vec<Vec<Point>> = find_contours(
         &mask_all,
-        &mut contours,
         RETR_LIST,
         CHAIN_APPROX_SIMPLE,
-        Point::new(0, 0),
-    )?;
+    );
     let mut vents = Vec::default();
-    for contour in contours {
-        let area = contour_area(&contour, false)?;
+    for mut contour in contours {
+        let area = contour_area(&mut contour);
         let area_score = area / (width as f64);
 
         // half venting arrow's area at fullscreen is 0.25 of the screenshot (on mac at least)
         // it's 0.77 on windows
         // starting from 0.01 to handle playing in a window and removing one off pixels
         if area_score > 0.01 {
-            let moments = moments(&contour, true)?;
-            let c_x = (moments.m10 / moments.m00).round() as i32;
-            let c_y = (moments.m01 / moments.m00).round() as i32;
+            let mut c_x = 0;
+            let mut c_y = 0;
+            let mut counter = 0;
+            for point in contour {
+                c_x = c_x + point.x;
+                c_y = c_y + point.y;
+                counter = counter + 1;
+            }
+            c_x = c_x / counter;
+            c_y = c_y / counter;
             vents.push((area_score, c_x, c_y));
         }
     }
@@ -81,7 +83,6 @@ pub fn select_vent(
     vents.sort_by(|a, b| b.0.partial_cmp(&a.0).expect("NaN sorting vents by area"));
     let max_area = vents[0].0;
     for (i, vent) in vents.iter().enumerate() {
-        println!("{} {:?} ",max_area, vent);
         if vent.0 / max_area < 0.9 {
             vents.truncate(i);
             break;

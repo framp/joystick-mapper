@@ -1,0 +1,23 @@
+[package]
+name = "opencv-sys"
+version = "0.1.0"
+authors = ["Ben Zhang <benzh@cs.berkeley.edu>"]
+edition = "2018"
+
+[dependencies]
+
+[build-dependencies]
+cc = "1.0"
+bindgen = "0.53"
+cmake = {version="0.1", optional=true}
+
+[features]
+default = ["imgproc", "build-opencv"]
+cuda = []
+dnn = []
+features2d = []
+highgui = []
+imgcodecs = []
+imgproc = []
+objdetect = []
+build-opencv = ["cmake"]

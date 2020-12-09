@@ -4,6 +4,7 @@ members = [
     "joystick-mapper-lib",
     "joystick-mapper-among-us",
     "joystick-mapper",
+    "opencv-sys"
 ]
 
 [patch.crates-io]
