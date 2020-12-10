@@ -9,23 +9,46 @@ use std::path::{Path, PathBuf};
 static OPENCV_LIB_DIR: &str = "OPENCV_LIB_DIR";
 static OPENCV_INCLUDE_DIR: &str = "OPENCV_INCLUDE_DIR";
 
-#[cfg(unix)]
+#[cfg(not(target_os = "windows"))]
+static SEPARATOR: &str = "/";
+#[cfg(target_os = "windows")]
+static SEPARATOR: &str = "\\";
+
+
 fn opencv_link() {
-    fn link_all_in_directory(lib_dir: &str) -> Result<(), std::io::Error> {
-        use std::os::unix::ffi::OsStrExt;
-        fs::read_dir(&lib_dir)?
+    fn link_directory_recursively(k: &str, lib_dir: &str) -> Result<(), std::io::Error> {
+        let libs = fs::read_dir(lib_dir)?
             .filter_map(|de| de.ok())
-            .filter(|de| de.file_name().as_bytes().starts_with(b"lib"))
+            .filter(|de| de.file_name().into_string().unwrap().starts_with("lib"))
             .filter(|de| de.path().is_file())
-            .for_each(|de| {
+            .map(|de| {
                 let name = de.file_name();
                 let f = name.to_string_lossy();
                 if f.ends_with(".so") {
-                    println!("cargo:rustc-link-lib={}", &f[3..f.len() - 3]);
+                   format!("cargo:rustc-link-lib={}", &f[3..f.len() - 3])
+                } else if f.ends_with(".dll") {
+                   format!("cargo:rustc-link-lib={}", &f[3..f.len() - 4])
                 } else if f.ends_with(".a") {
-                    println!("cargo:rustc-link-lib=static={}", &f[3..f.len() - 2]);
+                   format!("cargo:rustc-link-lib=static={}", &f[3..f.len() - 2])
+                } else {
+                    "".to_string()
                 }
-            });
+            })
+            .filter(|s| s != "")
+            .collect::<Vec<String>>();
+        if libs.len() > 0 {
+            println!("cargo:rustc-link-search=native={}", &lib_dir);
+            println!("cargo:rerun-if-env-changed={}", k);
+            for lib in libs {
+                println!("{}", lib);
+            }
+        }
+        fs::read_dir(lib_dir)?
+        .filter_map(|de| de.ok())
+        .filter(|de| de.path().is_dir())
+        .for_each(| dir| {
+            link_directory_recursively(k, &format!("{}/{}", lib_dir, dir.file_name().into_string().unwrap())).unwrap();
+        });
         Ok(())
     }
 
@@ -38,14 +61,12 @@ fn opencv_link() {
         OPENCV_LIB_DIR
     );
     for (k, lib_dir) in
-        env::vars().filter(|(k, _)| k.starts_with(OPENCV_LIB_DIR) || k.starts_with(&target_lib_dir))
-    {
-        println!("cargo:rustc-link-search=native={}", &lib_dir);
-        println!("cargo:rerun-if-env-changed={}", k);
-        link_all_in_directory(&lib_dir).unwrap_or_else(|e| {
+        env::vars().filter(|(k, _)| k.starts_with(OPENCV_LIB_DIR) || k.starts_with(&target_lib_dir)) {
+        link_directory_recursively(&k, &lib_dir).unwrap_or_else(|e| {
             eprintln!("Unable to read dir {}! {}", &lib_dir, e);
         });
     }
+
 }
 
 fn generate_binding<P: AsRef<Path>>(out_dir: P, modules: &[&str]) {
@@ -53,8 +74,8 @@ fn generate_binding<P: AsRef<Path>>(out_dir: P, modules: &[&str]) {
 
     for m in modules.iter().chain(once(&"version")) {
         let paths = vec![
-            format!("gocv/{}.h", m),
-            format!("gocv/{}_gocv.h", m),
+            format!("gocv{}{}.h", SEPARATOR, m),
+            format!("gocv{}{}_gocv.h", SEPARATOR, m),
             format!("{}.h", m),
         ];
         'paths: for path in paths {
@@ -73,7 +94,6 @@ fn generate_binding<P: AsRef<Path>>(out_dir: P, modules: &[&str]) {
         .expect("Couldn't write bindings!");
 }
 
-#[cfg(unix)]
 fn build_opencv<P: AsRef<Path>>(_out_dir: P) {
     #[cfg(feature = "build-opencv")]
     {
@@ -267,7 +287,7 @@ fn build_opencv<P: AsRef<Path>>(_out_dir: P) {
         }
         let manifest_dir =
             env::var("CARGO_MANIFEST_DIR").expect("Cargo should provide manifest directory!");
-        let opencv_dir = manifest_dir + "/opencv";
+        let opencv_dir = manifest_dir + SEPARATOR + "opencv";
         let target = env::var("TARGET")
             .expect("Cargo should provide TARGET")
             .replace("-", "_")
@@ -311,6 +331,7 @@ fn build_opencv<P: AsRef<Path>>(_out_dir: P) {
             "lib64",
             "share/OpenCV/3rdparty/lib",
             "share/OpenCV/3rdparty/lib64",
+            ""
         ];
         for p in paths {
             let path = dst.join(p);
@@ -324,7 +345,6 @@ fn build_opencv<P: AsRef<Path>>(_out_dir: P) {
     }
 }
 
-#[cfg(unix)]
 fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
@@ -367,7 +387,6 @@ fn main() {
             panic!("Unable to find .cpp file for {}", m);
         })
         .collect();
-
     let mut builder = cc::Build::new();
     builder
         .flag("-std=c++11")
@@ -393,9 +412,4 @@ fn main() {
     builder.compile("cv");
 
     opencv_link();
-}
-
-#[cfg(not(unix))]
-fn main() {
-    unimplemented!("This hasn't been implemented for non-*nix platforms yet!");
 }
