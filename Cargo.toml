@@ -9,3 +9,6 @@ members = [
 
 [patch.crates-io]
 enigo = { git = "https://github.com/enigo-rs/enigo", rev = "5bb84e938009385987875472adafaa45613b3534" }
+
+[profile.release]
+opt-level = 0
