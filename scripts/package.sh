@@ -18,7 +18,9 @@ fi
 if [ $1 == "win" ]; then
     cargo build --release --target x86_64-pc-windows-gnu
     TARGET=x86_64-pc-windows-gnu
-elif [ $1 == "mac"]; then
+elif [ $1 == "mac" ]; then
+    cargo build --release
+elif [ $1 == "linux" ]; then
     cargo build --release
 else 
     echo "Usage: $0 PLATFORM[win|mac] VERSION[x.y.z]"
